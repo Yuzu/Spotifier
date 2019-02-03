@@ -13,6 +13,7 @@ Instead of notifying you of new releases now, Spotify has implemented their "Rel
 * Python 3.0+
 * A Telegram Bot
 * Some way to run the script periodically
+* A Spotify Developer Client App
 
 
 
