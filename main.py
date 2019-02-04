@@ -26,7 +26,6 @@ def main():
         os.remove(".cache--{}".format(username))
         token = util.prompt_for_user_token(username, scope=followScope)
 
-
     if token:
         sp = spotipy.Spotify(auth=token)
 
@@ -51,7 +50,6 @@ def main():
 
             nextCursor = page["artists"]["cursors"]["after"]
 
-        
        # print("{} artists.".format(count)) # Keep for sake of debugging
 
         todaysReleases = {}
@@ -69,16 +67,13 @@ def main():
                                                 
                 utcDate = datetime.utcnow().strftime('%Y/%m/%d')
 
-                
-                if (releaseDate == utcDate):
+                if releaseDate == utcDate:
                     todaysReleases.setdefault(artist, [])
                     todaysReleases[artist].append({"albumName": album["name"], "albumURL": album["external_urls"]["spotify"]})
-                    
-            
+
         #print("Done determining releases.") # Maybe keep just for debugging
 
         message = "Hello! Here's today's updates: \n\n"
-
 
         for artist in todaysReleases:
             artistString = ""
@@ -90,20 +85,16 @@ def main():
                 artistString += album["albumName"] + "\n"
                 artistString += album["albumURL"] + "\n" + "\n"
 
-            
-
             message += artistString  + "\n" + "==========" + "\n" + "\n"
-
 
         if message == "Hello! Here's today's updates: \n\n":
             message = "No updates today."
 
-
         requests.get('https://api.telegram.org/bot{}/sendMessage?chat_id={}&text={}'.format(bot_token, chat_id, message))
-      
-        
+
     else:
         print("Invalid token.")
-    
+
+
 if __name__ == "__main__":
     main()
