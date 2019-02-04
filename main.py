@@ -1,47 +1,44 @@
 import sys
-import os
 import json
-import webbrowser
 import spotipy
 import spotipy.util as util
 from datetime import datetime
 from datetime import timedelta
 from datetime import time
+import requests
 
-if len(sys.argv) > 1:
-    username = sys.argv[1] # User ID = hqn3isgkrwyfzo8d0fv6477t3
-else:
-    username = "hqn3isgkrwyfzo8d0fv6477t3"
-
+def main():
     
-followScope = "user-follow-read"
+    bot_token = "" # Telegram bot token.
+    chat_id = "" # Chat channel you want the bot to talk in.
 
-try:
-    token = util.prompt_for_user_token(username, scope=followScope)
-except:
-    os.remove(".cache--{}".format(username))
-    token = util.prompt_for_user_token(username, scope=followScope)
+    if len(sys.argv) > 1:
+        username = sys.argv[1] # User ID = hqn3isgkrwyfzo8d0fv6477t3
+    else:
+        username = "hqn3isgkrwyfzo8d0fv6477t3"
+
+        
+    followScope = "user-follow-read" # Read user's followers. https://developer.spotify.com/documentation/general/guides/scopes/#scopes
+
+    try:
+        token = util.prompt_for_user_token(username, scope=followScope)
+    except:
+        os.remove(".cache--{}".format(username))
+        token = util.prompt_for_user_token(username, scope=followScope)
 
 
-if token:
-    sp = spotipy.Spotify(auth=token)
+    if token:
+        sp = spotipy.Spotify(auth=token)
 
-    user = sp.current_user()
-    #print(json.dumps(user, sort_keys=True, indent=2))
-
-    with open("followedArtists.json", "w") as f:
-
-
-        # can take everything below outside of open
+        user = sp.current_user()
 
         count = 0
         data = {}
         
         page = sp.current_user_followed_artists()
         for artist in page["artists"]["items"]:
-            #print(artist["name"])
             count += 1
-            data.setdefault(str([artist["name"]]), artist["uri"])
+            data.setdefault(str(artist["name"]), artist["uri"])
 
         nextCursor = page["artists"]["cursors"]["after"]
         while nextCursor != None:
@@ -49,14 +46,13 @@ if token:
             page = sp.current_user_followed_artists(after=nextCursor)
 
             for artist in page["artists"]["items"]:
-                #print(artist["name"])
                 count += 1
-                data.setdefault(str([artist["name"]]), artist["uri"])
+                data.setdefault(str(artist["name"]), artist["uri"])
 
             nextCursor = page["artists"]["cursors"]["after"]
 
-        json.dump(data, f, indent=4) 
-        print("{} artists.".format(count))
+        
+       # print("{} artists.".format(count)) # Keep for sake of debugging
 
         todaysReleases = {}
         
@@ -64,10 +60,6 @@ if token:
             urn = data[artist]
 
             artistAlbums = sp.artist_albums(urn)
-
-            #with open("current.json", "w") as f:
-                #json.dump(artistAlbums, f, indent=4)
-
 
             for album in artistAlbums["items"]:
                 if (album["release_date_precision"] != "day"):
@@ -78,16 +70,40 @@ if token:
                 utcDate = datetime.utcnow().strftime('%Y/%m/%d')
 
                 
-                if (releaseDate != utcDate):
-                    todaysReleases.setdefault(str(artist), [])
-                    todaysReleases[str(artist)].append({"name": str(album["name"]), "link": str(album["external_urls"]["spotify"])})
+                if (releaseDate == utcDate):
+                    todaysReleases.setdefault(artist, [])
+                    todaysReleases[artist].append({"albumName": album["name"], "albumURL": album["external_urls"]["spotify"]})
+                    
             
-        with open("releases.json", "w") as f:
-            json.dump(todaysReleases, f, indent=4)
-            
-        print("done")
-    
-else:
-    print("Invalid token.")
-    
+        #print("Done determining releases.") # Maybe keep just for debugging
 
+        message = "Hello! Here's today's updates: \n\n"
+
+
+        for artist in todaysReleases:
+            artistString = ""
+            artistString += artist + "\n" + "\n"
+
+            for album in todaysReleases[artist]:
+                print(album)
+                
+                artistString += album["albumName"] + "\n"
+                artistString += album["albumURL"] + "\n" + "\n"
+
+            
+
+            message += artistString  + "\n" + "==========" + "\n" + "\n"
+
+
+        if message == "Hello! Here's today's updates: \n\n":
+            message = "No updates today."
+
+
+        requests.get('https://api.telegram.org/bot{}/sendMessage?chat_id={}&text={}'.format(bot_token, chat_id, message))
+      
+        
+    else:
+        print("Invalid token.")
+    
+if __name__ == "__main__":
+    main()

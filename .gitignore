@@ -1,5 +1,8 @@
 .cache-*
-.json
+*.txt
+
+
+
 
 .idea/
 *.json
